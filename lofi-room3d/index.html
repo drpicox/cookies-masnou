@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Habitació amb vistes</title>
+<meta name="description" content="Escena lofi en pixel art 3D: una noia estudia amb cascos al costat d'una finestra d'un pis alt, amb la ciutat i el mar, el cel que canvia de la nit a l'alba, el dia i la posta, pluja, llamps i coloms, amb música lofi generada en directe.">
+<meta name="theme-color" content="#161a3a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css?v=3">
+</head>
+<body>
+<canvas id="scene" aria-label="Escena animada: una noia estudia amb cascos al costat d'una finestra amb vistes a la ciutat i el mar"></canvas>
+
+<!-- Pantalla d'inici -->
+<div id="intro" class="intro" role="dialog" aria-labelledby="introTitle">
+  <div class="intro-card">
+    <div class="intro-kicker">lofi · pixel art · pis alt amb vistes al mar</div>
+    <h1 id="introTitle">Habitació amb vistes</h1>
+    <p>Música lofi generada en directe, el cel que passa de la nit estrellada a l'alba, el dia i la posta, pluja a la finestra, algun llamp i coloms que venen de visita.</p>
+    <button id="startBtn" class="start-btn" type="button">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+      <span>Comença</span>
+    </button>
+    <div class="intro-hint"><kbd>H</kbd> panell · <kbd>F</kbd> pantalla completa · <kbd>Espai</kbd> música</div>
+    <button id="silentBtn" class="link-btn" type="button">Continua sense so</button>
+  </div>
+</div>
+
+<!-- Avís breu -->
+<div id="toast" class="toast" aria-live="polite"></div>
+
+<!-- Ara sona -->
+<div id="nowPlaying" class="now-playing idle-fade">
+  <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+  <span class="np-text"><b id="npTitle">—</b><span id="npSub">lofi generat en directe</span></span>
+</div>
+
+<!-- Botons flotants -->
+<div id="dock" class="dock idle-fade">
+  <button id="btnMusic" class="dock-btn" type="button" title="Música (Espai)" aria-label="Posa o treu la música">
+    <svg class="ico-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>
+    <svg class="ico-pause" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></svg>
+  </button>
+  <button id="btnMute" class="dock-btn" type="button" title="Silencia (M)" aria-label="Silencia">
+    <svg class="ico-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="st" d="M16 8.5a4.5 4.5 0 0 1 0 7M18.5 6a8 8 0 0 1 0 12"/></svg>
+    <svg class="ico-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path class="st" d="M16.5 9.5l5 5m0-5l-5 5"/></svg>
+  </button>
+  <button id="btnFull" class="dock-btn" type="button" title="Pantalla completa (F)" aria-label="Pantalla completa">
+    <svg class="ico-full" viewBox="0 0 24 24" aria-hidden="true"><path class="st" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>
+    <svg class="ico-exit" viewBox="0 0 24 24" aria-hidden="true"><path class="st" d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>
+  </button>
+  <button id="btnPanel" class="dock-btn" type="button" title="Ajustos (H)" aria-label="Obre els ajustos">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path class="st" d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle class="st" cx="15" cy="7" r="2"/><circle class="st" cx="9" cy="17" r="2"/></svg>
+  </button>
+</div>
+
+<!-- Panell d'ajustos -->
+<aside id="panel" class="panel" aria-label="Ajustos de l'escena" aria-hidden="true">
+  <header class="panel-head">
+    <div class="clock-wrap">
+      <div class="clock" id="uiClock">17:40</div>
+      <div class="clock-sub"><span id="uiPhase">Posta de sol</span> · <span id="uiWeather">serè</span></div>
+    </div>
+    <button class="icon-btn" id="btnClose" type="button" aria-label="Tanca el panell" title="Tanca (H)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path class="st" d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+  </header>
+
+  <div class="panel-body">
+    <section>
+      <h2>Moment del dia</h2>
+      <div class="presets" id="presets">
+        <button type="button" data-h="1.6"><span class="pi pi-night"></span>Nit estrellada</button>
+        <button type="button" data-h="6.12"><span class="pi pi-dawn"></span>Sortida del sol</button>
+        <button type="button" data-h="12.4"><span class="pi pi-day"></span>Dia</button>
+        <button type="button" data-h="17.62"><span class="pi pi-dusk"></span>Posta</button>
+      </div>
+      <label class="range">
+        <span class="lbl">Hora <b id="valHour">17:40</b></span>
+        <input type="range" id="rngHour" min="0" max="24" step="0.02" value="17.6" aria-label="Hora del dia">
+      </label>
+      <div class="seg" id="segTime" role="radiogroup" aria-label="Com passa el temps">
+        <button type="button" data-v="cycle">Cicle</button>
+        <button type="button" data-v="real">Hora real</button>
+        <button type="button" data-v="fixed">Aturat</button>
+      </div>
+      <label class="range" id="rowDay">
+        <span class="lbl">Durada d'un dia <b id="valDay">24 min</b></span>
+        <input type="range" id="rngDay" min="2" max="120" step="1" value="24" aria-label="Durada d'un dia sencer">
+      </label>
+    </section>
+
+    <section>
+      <h2>Temps</h2>
+      <div class="seg seg-5" id="segWeather" role="radiogroup" aria-label="Temps">
+        <button type="button" data-v="auto">Auto</button>
+        <button type="button" data-v="clear">Serè</button>
+        <button type="button" data-v="cloudy">Núvols</button>
+        <button type="button" data-v="rain">Pluja</button>
+        <button type="button" data-v="storm">Tempesta</button>
+      </div>
+      <label class="range">
+        <span class="lbl">Intensitat de la pluja <b id="valRain">70%</b></span>
+        <input type="range" id="rngRain" min="15" max="100" step="1" value="70" aria-label="Intensitat de la pluja">
+      </label>
+      <div class="row-btns">
+        <button type="button" class="soft-btn" id="btnBolt">⚡ Llamp</button>
+        <button type="button" class="soft-btn" id="btnPigeon">🕊 Crida un colom</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Escena</h2>
+      <div class="seg" id="segAct" role="radiogroup" aria-label="Què fa la noia">
+        <button type="button" data-v="auto">Auto</button>
+        <button type="button" data-v="computer">Ordinador</button>
+        <button type="button" data-v="study">Estudia</button>
+      </div>
+      <div class="kv">
+        <span>Flexo</span>
+        <div class="seg seg-sm" id="segLamp"><button type="button" data-v="auto">Auto</button><button type="button" data-v="on">Encès</button><button type="button" data-v="off">Apagat</button></div>
+      </div>
+      <div class="kv">
+        <span>Llumetes</span>
+        <div class="seg seg-sm" id="segFairy"><button type="button" data-v="auto">Auto</button><button type="button" data-v="on">Enceses</button><button type="button" data-v="off">Apagades</button></div>
+      </div>
+      <div class="toggles">
+        <label class="switch"><input type="checkbox" id="chkPigeons"><span class="track"></span><span>Coloms</span></label>
+        <label class="switch"><input type="checkbox" id="chkCat"><span class="track"></span><span>Gat</span></label>
+        <label class="switch"><input type="checkbox" id="chkCandle"><span class="track"></span><span>Espelma</span></label>
+      </div>
+    </section>
+
+    <section>
+      <h2>So</h2>
+      <div class="song-card">
+        <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+        <div class="song-meta"><b id="uiSong">—</b><span id="uiSongSub">prem Comença per escoltar</span></div>
+      </div>
+      <div class="row-btns">
+        <button type="button" class="soft-btn" id="btnPlay">⏸ Pausa la música</button>
+        <button type="button" class="soft-btn" id="btnNext">⏭ Una altra cançó</button>
+      </div>
+      <div id="mixer" class="mixer"></div>
+    </section>
+
+    <section>
+      <h2>Imatge</h2>
+      <div class="kv">
+        <span>Mida del píxel</span>
+        <div class="seg seg-sm" id="segPx"><button type="button" data-v="360">Fi</button><button type="button" data-v="270">Normal</button><button type="button" data-v="210">Gruixut</button><button type="button" data-v="160">Enorme</button></div>
+      </div>
+      <div class="toggles">
+        <label class="switch"><input type="checkbox" id="chkOutline"><span class="track"></span><span>Contorns</span></label>
+        <label class="switch"><input type="checkbox" id="chkBloom"><span class="track"></span><span>Resplendor</span></label>
+        <label class="switch"><input type="checkbox" id="chkGrain"><span class="track"></span><span>Gra</span></label>
+        <label class="switch"><input type="checkbox" id="chkParallax"><span class="track"></span><span>Paral·laxi</span></label>
+      </div>
+      <div class="kv">
+        <span>Fotogrames</span>
+        <div class="seg seg-sm" id="segFps"><button type="button" data-v="24">24</button><button type="button" data-v="30">30</button><button type="button" data-v="60">60</button></div>
+      </div>
+    </section>
+
+    <footer class="keys">
+      <span><kbd>H</kbd> panell</span>
+      <span><kbd>F</kbd> pantalla completa</span>
+      <span><kbd>Espai</kbd> música</span>
+      <span><kbd>N</kbd> cançó</span>
+      <span><kbd>M</kbd> silenci</span>
+      <span><kbd>1</kbd>–<kbd>4</kbd> moments</span>
+      <span><kbd>←</kbd><kbd>→</kbd> hora</span>
+      <span><kbd>R</kbd> pluja</span>
+      <span><kbd>L</kbd> llamp</span>
+      <span><kbd>C</kbd> colom</span>
+    </footer>
+  </div>
+</aside>
+
+<script src="vendor/three.min.js"></script>
+<script src="js/core.js?v=3"></script>
+<script src="js/timeofday.js?v=3"></script>
+<script src="js/render.js?v=3"></script>
+<script src="js/textures.js?v=3"></script>
+<script src="js/room.js?v=3"></script>
+<script src="js/outside.js?v=3"></script>
+<script src="js/weather.js?v=3"></script>
+<script src="js/pigeons.js?v=3"></script>
+<script src="js/characters.js?v=3"></script>
+<script src="js/audio.js?v=3" onerror="console.warn('Sense motor d\'àudio')"></script>
+<script src="js/main.js?v=3"></script>
+<script src="js/ui.js?v=3"></script>
+</body>
+</html>
